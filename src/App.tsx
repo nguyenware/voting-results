@@ -15,9 +15,29 @@ type LoadState =
   | { status: 'error'; message: string }
   | { status: 'ready'; snapshot: ElectionSnapshot; crosswalk: ZipCrosswalk };
 
-/** Keeps the looked-up ZIP in the URL so a result is linkable and reloadable. */
+/**
+ * Keeps the looked-up ZIP in the URL so a result is linkable and reloadable.
+ * Both directions are guarded: an embedded or sandboxed host can refuse
+ * History access, and losing a deep link must never break the lookup itself.
+ */
 function zipFromUrl(): string {
-  return new URLSearchParams(window.location.search).get('zip') ?? '';
+  try {
+    return new URLSearchParams(window.location.search).get('zip') ?? '';
+  } catch {
+    return '';
+  }
+}
+
+function writeZipToUrl(zip: string) {
+  try {
+    const params = new URLSearchParams(window.location.search);
+    if (zip) params.set('zip', zip);
+    else params.delete('zip');
+    const next = params.toString();
+    window.history.replaceState(null, '', next ? `?${next}` : window.location.pathname);
+  } catch {
+    /* deep linking is a nicety; the lookup works without it */
+  }
 }
 
 export function App() {
@@ -65,11 +85,7 @@ export function App() {
 
   function search(value: string) {
     setQuery(value);
-    const params = new URLSearchParams(window.location.search);
-    if (value.trim()) params.set('zip', value.trim());
-    else params.delete('zip');
-    const next = params.toString();
-    window.history.replaceState(null, '', next ? `?${next}` : window.location.pathname);
+    writeZipToUrl(value.trim());
   }
 
   if (state.status === 'loading') {

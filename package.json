@@ -14,7 +14,8 @@
     "data:geo": "node --max-old-space-size=6144 scripts/build-geo.mjs",
     "data:results": "node scripts/fetch-results.mjs",
     "data:sample": "node scripts/make-sample.mjs",
-    "data:all": "npm run data:geo && npm run data:results"
+    "data:all": "npm run data:geo && npm run data:results",
+    "demo": "npm run build && node scripts/build-demo.mjs && node scripts/build-demo.mjs --standalone"
   },
   "dependencies": {
     "leaflet": "^1.9.4",
