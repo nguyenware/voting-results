@@ -1,0 +1,35 @@
+{
+  "name": "wa-voting-results-by-zip",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Look up Washington State election results by ZIP code, with a county choropleth map.",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc -b --noEmit false --emitDeclarationOnly false",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "data:geo": "node --max-old-space-size=6144 scripts/build-geo.mjs",
+    "data:results": "node scripts/fetch-results.mjs",
+    "data:sample": "node scripts/make-sample.mjs",
+    "data:all": "npm run data:geo && npm run data:results"
+  },
+  "dependencies": {
+    "leaflet": "^1.9.4",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@turf/turf": "^7.1.0",
+    "@types/leaflet": "^1.9.12",
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "@vitejs/plugin-react": "^4.3.3",
+    "mapshaper": "^0.6.102",
+    "typescript": "^5.6.3",
+    "vite": "^5.4.10",
+    "vitest": "^2.1.4"
+  }
+}
