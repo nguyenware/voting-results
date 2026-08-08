@@ -1,0 +1,158 @@
+[
+  {
+    "fips": "53001",
+    "name": "Adams"
+  },
+  {
+    "fips": "53003",
+    "name": "Asotin"
+  },
+  {
+    "fips": "53005",
+    "name": "Benton"
+  },
+  {
+    "fips": "53007",
+    "name": "Chelan"
+  },
+  {
+    "fips": "53009",
+    "name": "Clallam"
+  },
+  {
+    "fips": "53011",
+    "name": "Clark"
+  },
+  {
+    "fips": "53013",
+    "name": "Columbia"
+  },
+  {
+    "fips": "53015",
+    "name": "Cowlitz"
+  },
+  {
+    "fips": "53017",
+    "name": "Douglas"
+  },
+  {
+    "fips": "53019",
+    "name": "Ferry"
+  },
+  {
+    "fips": "53021",
+    "name": "Franklin"
+  },
+  {
+    "fips": "53023",
+    "name": "Garfield"
+  },
+  {
+    "fips": "53025",
+    "name": "Grant"
+  },
+  {
+    "fips": "53027",
+    "name": "Grays Harbor"
+  },
+  {
+    "fips": "53029",
+    "name": "Island"
+  },
+  {
+    "fips": "53031",
+    "name": "Jefferson"
+  },
+  {
+    "fips": "53033",
+    "name": "King"
+  },
+  {
+    "fips": "53035",
+    "name": "Kitsap"
+  },
+  {
+    "fips": "53037",
+    "name": "Kittitas"
+  },
+  {
+    "fips": "53039",
+    "name": "Klickitat"
+  },
+  {
+    "fips": "53041",
+    "name": "Lewis"
+  },
+  {
+    "fips": "53043",
+    "name": "Lincoln"
+  },
+  {
+    "fips": "53045",
+    "name": "Mason"
+  },
+  {
+    "fips": "53047",
+    "name": "Okanogan"
+  },
+  {
+    "fips": "53049",
+    "name": "Pacific"
+  },
+  {
+    "fips": "53051",
+    "name": "Pend Oreille"
+  },
+  {
+    "fips": "53053",
+    "name": "Pierce"
+  },
+  {
+    "fips": "53055",
+    "name": "San Juan"
+  },
+  {
+    "fips": "53057",
+    "name": "Skagit"
+  },
+  {
+    "fips": "53059",
+    "name": "Skamania"
+  },
+  {
+    "fips": "53061",
+    "name": "Snohomish"
+  },
+  {
+    "fips": "53063",
+    "name": "Spokane"
+  },
+  {
+    "fips": "53065",
+    "name": "Stevens"
+  },
+  {
+    "fips": "53067",
+    "name": "Thurston"
+  },
+  {
+    "fips": "53069",
+    "name": "Wahkiakum"
+  },
+  {
+    "fips": "53071",
+    "name": "Walla Walla"
+  },
+  {
+    "fips": "53073",
+    "name": "Whatcom"
+  },
+  {
+    "fips": "53075",
+    "name": "Whitman"
+  },
+  {
+    "fips": "53077",
+    "name": "Yakima"
+  }
+]

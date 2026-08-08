@@ -1,0 +1,39 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "wa-voting-results",
+  "main": "worker/index.js",
+  "compatibility_date": "2025-09-01",
+
+  "assets": {
+    "directory": "./dist",
+    "binding": "ASSETS",
+    // Results requests must reach the Worker so it can answer from KV. Without
+    // this, the sample JSON baked into dist/ would shadow the live data, since
+    // a matching static asset is normally served without invoking the Worker.
+    "run_worker_first": ["/data/results/*"]
+  },
+
+  "kv_namespaces": [
+    {
+      "binding": "RESULTS",
+      // Replace with the id printed by:
+      //   npx wrangler kv namespace create RESULTS
+      "id": "REPLACE_WITH_YOUR_KV_NAMESPACE_ID"
+    }
+  ],
+
+  "triggers": {
+    // Every 5 minutes. Most ticks cost a single upstream request because the
+    // job skips the county fan-out when `asOf` has not moved. Drop to
+    // "*/2 * * * *" on election night, or up to hourly once results certify.
+    "crons": ["*/5 * * * *"]
+  },
+
+  "vars": {
+    "ELECTION_ID": "20260804"
+  },
+
+  "observability": {
+    "enabled": true
+  }
+}

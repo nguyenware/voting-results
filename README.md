@@ -61,10 +61,13 @@ badge reflects the API's `isOfficialResults` flag.
 
 ```
 scripts/build-geo.mjs      boundaries + ZIP→county crosswalk  → public/data/geo/
-scripts/fetch-results.mjs  VoteWA snapshot                    → public/data/results/
 scripts/lib/normalize.mjs  pure transforms (unit tested)
+scripts/lib/ingest.mjs     fetch + normalize, no filesystem — shared by CLI and Worker
+scripts/fetch-results.mjs  Node wrapper: writes a snapshot     → public/data/results/
 scripts/mock-api.mjs       local stand-in for the VoteWA API
 scripts/make-sample.mjs    sample data, via the real ingest path
+scripts/build-demo.mjs     single self-contained HTML file
+worker/index.js            Cloudflare Worker: assets + KV results + cron ingest
 src/                       the React app
 ```
 
@@ -149,5 +152,65 @@ of State service. Replace it with `npm run data:results`.
 
 ## Deploying
 
-`npm run build` emits a fully static `dist/`. Set `VITE_BASE_PATH` if hosting
-under a subpath (e.g. GitHub Pages project sites).
+`npm run build` emits a fully static `dist/`, so any static host works. The
+question worth thinking about is not hosting — it is **how the results get
+refreshed**, because that is the only thing that changes after deploy.
+
+### The split that matters
+
+| What | Size | Changes |
+|---|---|---|
+| App shell + boundaries | ~1.2 MB | only when you re-run the pipeline |
+| Results JSON | ~16 KB | every few minutes on election night |
+
+Rebuilding and redeploying 1.2 MB of unchanged geometry every time a county
+reports is the thing to avoid. The Cloudflare setup below serves the shell as
+static assets and the results from KV, refreshed by a cron trigger — so new
+numbers appear with no rebuild and no redeploy.
+
+### Cloudflare (recommended)
+
+One Worker serves the static assets, answers `/data/results/*` from KV, and
+runs the ingest on a schedule. `worker/index.js` imports the *same*
+`scripts/lib/ingest.mjs` the CLI uses, which is why that module has no
+filesystem dependencies.
+
+```bash
+npm install
+npm run data:geo                              # build boundaries + crosswalk
+
+npx wrangler kv namespace create RESULTS      # paste the id into wrangler.jsonc
+npm run cf:deploy                             # builds, then deploys
+```
+
+Then set the election and, optionally, a token for manual refreshes:
+
+```bash
+# ELECTION_ID lives in wrangler.jsonc vars — edit it per election
+npx wrangler secret put REFRESH_TOKEN         # enables POST /__refresh
+curl -X POST https://<your-host>/__refresh -H "Authorization: Bearer <token>"
+```
+
+`npm run cf:tail` streams logs, including each cron run's outcome.
+
+**Cron cost is low by design.** The job checks the metadata endpoint first —
+it carries `asOf`, so when nothing upstream has moved the per-county fan-out is
+skipped entirely and the tick costs one request instead of sixteen. The
+default schedule is every 5 minutes; drop to `*/2 * * * *` on election night
+and back to hourly once results certify.
+
+Until the first cron fires, the Worker falls through to whatever results JSON
+was baked into `dist/`, so a fresh deploy is never blank.
+
+### Simpler: static hosting, no live refresh
+
+If you don't need results to update on their own — an archived election, say —
+skip the Worker entirely. `dist/` is plain static output; Cloudflare Pages,
+GitHub Pages, Netlify, or S3 all serve it as-is. Refresh by re-running
+`npm run data:results` and redeploying. Set `VITE_BASE_PATH` if hosting under a
+subpath (e.g. GitHub Pages project sites).
+
+A scheduled GitHub Action can automate that, but note the tradeoff: Actions
+cron is best-effort and routinely runs 10–20 minutes late under load, and each
+refresh commits results into git history. That is fine for a certified
+election, poor for election night.

@@ -342,10 +342,18 @@ async function main() {
   const simpleCounties = await simplify(waCounties, null, 'counties');
   const simpleZctas = await simplify(waZctas, '3%', 'zctas');
 
+  // A bare fips/name list, so the ingest — and especially the Cloudflare
+  // Worker, which must stay small — can join VoteWA's locality slugs to
+  // counties without carrying the full boundary file.
+  const countyIndex = waCounties.features
+    .map((f) => ({ fips: f.properties.GEOID, name: f.properties.NAME }))
+    .sort((a, b) => a.fips.localeCompare(b.fips));
+
   await Promise.all([
     writeFile(path.join(OUT_DIR, 'wa-counties.geojson'), JSON.stringify(simpleCounties)),
     writeFile(path.join(OUT_DIR, 'wa-zctas.geojson'), JSON.stringify(simpleZctas)),
     writeFile(path.join(OUT_DIR, 'zip-crosswalk.json'), JSON.stringify(crosswalk)),
+    writeFile(path.join(OUT_DIR, 'wa-county-index.json'), JSON.stringify(countyIndex, null, 2)),
   ]);
 
   console.log(`\nWrote geo assets to ${path.relative(ROOT, OUT_DIR)}/`);

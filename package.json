@@ -15,7 +15,10 @@
     "data:results": "node scripts/fetch-results.mjs",
     "data:sample": "node scripts/make-sample.mjs",
     "data:all": "npm run data:geo && npm run data:results",
-    "demo": "npm run build && node scripts/build-demo.mjs && node scripts/build-demo.mjs --standalone"
+    "demo": "npm run build && node scripts/build-demo.mjs && node scripts/build-demo.mjs --standalone",
+    "cf:dev": "npm run build && wrangler dev",
+    "cf:deploy": "npm run build && wrangler deploy",
+    "cf:tail": "wrangler tail"
   },
   "dependencies": {
     "leaflet": "^1.9.4",
@@ -31,6 +34,7 @@
     "mapshaper": "^0.6.102",
     "typescript": "^5.6.3",
     "vite": "^5.4.10",
-    "vitest": "^2.1.4"
+    "vitest": "^2.1.4",
+    "wrangler": "^4.120.0"
   }
 }
