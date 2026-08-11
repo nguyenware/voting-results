@@ -288,11 +288,19 @@ function stateDataPayload() {
       ballotItemCount: 1,
       ballotsCast: 0,
     },
+    // Mirrors the real payload's shape exactly, which matters more than it
+    // looks: an earlier version of this mock put `slug` at the top level, so
+    // the tests passed while production failed to match a single county. The
+    // entry's own `name` is the ELECTION name, identical for every county, and
+    // the county slug hides at jurisdiction.shortName.
     localityElections: COUNTIES.map((c) => ({
       id: `le-${c.slug}`,
-      slug: c.slug,
-      name: en(c.name),
-      shortName: c.name,
+      name: en('2026 Primary'),
+      jurisdiction: {
+        id: `juris-${c.slug}`,
+        shortName: c.slug,
+        name: en(c.name),
+      },
     })),
     ballotItems: statewideBallotItems(),
     precincts: [],

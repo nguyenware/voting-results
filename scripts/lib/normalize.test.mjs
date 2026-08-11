@@ -216,11 +216,22 @@ describe('buildCountyIndex', () => {
     { fips: '53055', name: 'San Juan' },
   ];
 
-  it('joins locality slugs to Census FIPS', () => {
+  /**
+   * The real payload shape: the entry's own `name` is the ELECTION name,
+   * repeated identically for every county, and the county slug is at
+   * jurisdiction.shortName.
+   */
+  const locality = (slug, countyName, id) => ({
+    id,
+    name: [{ languageId: 'en', text: '2026 Primary' }],
+    jurisdiction: { id: `juris-${slug}`, shortName: slug, name: [{ languageId: 'en', text: countyName }] },
+  });
+
+  it('joins localities to Census FIPS via jurisdiction.shortName', () => {
     const { counties, unmatched } = buildCountyIndex(
       [
-        { slug: 'king-county-wa', name: [{ languageId: 'en', text: 'King County' }], id: 'e1' },
-        { slug: 'grays-harbor-county-wa', name: [{ languageId: 'en', text: 'Grays Harbor County' }] },
+        locality('king-county-wa', 'King County', 'e1'),
+        locality('grays-harbor-county-wa', 'Grays Harbor County'),
       ],
       census,
     );
@@ -229,8 +240,38 @@ describe('buildCountyIndex', () => {
     expect(unmatched).toEqual([]);
   });
 
+  it('never identifies a county by the entry’s own name', () => {
+    // Every entry carries the same election name. Matching on it produced the
+    // "39 localities did not match a county: 2026 Primary, ..." failure, and
+    // matching on it *successfully* would be worse: 39 counties collapsing
+    // into one. Without a jurisdiction, nothing may match.
+    const { counties, unmatched } = buildCountyIndex(
+      [
+        { id: 'a', name: [{ languageId: 'en', text: '2026 Primary' }] },
+        { id: 'b', name: [{ languageId: 'en', text: '2026 Primary' }] },
+      ],
+      census,
+    );
+    expect(counties).toEqual({});
+    expect(unmatched).toHaveLength(2);
+  });
+
+  it('still accepts the flatter shapes as a fallback', () => {
+    const { counties } = buildCountyIndex([{ slug: 'king-county-wa' }], census);
+    expect(counties['53033']).toMatchObject({ slug: 'king-county-wa' });
+  });
+
+  it('reports the entry’s keys when it cannot find a slug at all', () => {
+    // So one failed run is enough to locate a field that moved again.
+    const { unmatched } = buildCountyIndex([{ id: 'x', totalVoters: 5 }], census);
+    expect(unmatched[0]).toContain('keys: id,totalVoters');
+  });
+
   it('reports localities it cannot match rather than dropping them silently', () => {
-    const { counties, unmatched } = buildCountyIndex([{ slug: 'atlantis-county-wa' }], census);
+    const { counties, unmatched } = buildCountyIndex(
+      [locality('atlantis-county-wa', 'Atlantis County')],
+      census,
+    );
     expect(counties).toEqual({});
     expect(unmatched).toEqual(['atlantis-county-wa']);
   });
