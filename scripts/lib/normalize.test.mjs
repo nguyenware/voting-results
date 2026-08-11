@@ -217,60 +217,91 @@ describe('buildCountyIndex', () => {
   ];
 
   /**
-   * The real payload shape: the entry's own `name` is the ELECTION name,
-   * repeated identically for every county, and the county slug is at
-   * jurisdiction.shortName.
+   * A real localityElections entry: it names its ELECTION, never its county,
+   * and points at the county only by GUID.
    */
-  const locality = (slug, countyName, id) => ({
+  const locality = (slug, id) => ({
     id,
+    jurisdictionId: `juris-${slug}`,
     name: [{ languageId: 'en', text: '2026 Primary' }],
-    jurisdiction: { id: `juris-${slug}`, shortName: slug, name: [{ languageId: 'en', text: countyName }] },
+    isPrimary: true,
   });
 
-  it('joins localities to Census FIPS via jurisdiction.shortName', () => {
+  /** The county directory, whose GUIDs upstream returns in a different case. */
+  const jurisdiction = (...slugs) => ({
+    id: 'juris-wa',
+    childLocalities: slugs.map((slug) => ({
+      id: `JURIS-${slug.toUpperCase()}`,
+      shortName: slug,
+      name: [{ languageId: 'en', text: `${slug.split('-county')[0]} County` }],
+    })),
+  });
+
+  it('joins localities to counties through jurisdiction.childLocalities', () => {
     const { counties, unmatched } = buildCountyIndex(
-      [
-        locality('king-county-wa', 'King County', 'e1'),
-        locality('grays-harbor-county-wa', 'Grays Harbor County'),
-      ],
+      [locality('king-county-wa', 'e1'), locality('grays-harbor-county-wa')],
       census,
+      jurisdiction('king-county-wa', 'grays-harbor-county-wa'),
     );
     expect(Object.keys(counties).sort()).toEqual(['53027', '53033']);
     expect(counties['53033']).toMatchObject({ name: 'King', slug: 'king-county-wa', electionId: 'e1' });
     expect(unmatched).toEqual([]);
   });
 
+  it('matches GUIDs case-insensitively', () => {
+    // The two arrays disagree on case upstream; a case-sensitive join finds
+    // nothing at all, which is indistinguishable from the API being down.
+    const { counties } = buildCountyIndex(
+      [{ id: 'e1', jurisdictionId: 'JuRiS-KiNg-CoUnTy-Wa' }],
+      census,
+      jurisdiction('king-county-wa'),
+    );
+    expect(counties['53033']).toMatchObject({ slug: 'king-county-wa' });
+  });
+
+  it('keeps the slug form for fetching, not the display name', () => {
+    // The slug is used as a URL path segment, so "King County" would 404.
+    const { counties } = buildCountyIndex(
+      [locality('san-juan-county-wa')],
+      census,
+      jurisdiction('san-juan-county-wa'),
+    );
+    expect(counties['53055'].slug).toBe('san-juan-county-wa');
+  });
+
   it('never identifies a county by the entry’s own name', () => {
     // Every entry carries the same election name. Matching on it produced the
-    // "39 localities did not match a county: 2026 Primary, ..." failure, and
-    // matching on it *successfully* would be worse: 39 counties collapsing
-    // into one. Without a jurisdiction, nothing may match.
+    // "39 localities did not match: 2026 Primary, ..." failure — and matching
+    // it *successfully* would be worse: 39 counties collapsing into one.
     const { counties, unmatched } = buildCountyIndex(
       [
         { id: 'a', name: [{ languageId: 'en', text: '2026 Primary' }] },
         { id: 'b', name: [{ languageId: 'en', text: '2026 Primary' }] },
       ],
       census,
+      jurisdiction('king-county-wa'),
     );
     expect(counties).toEqual({});
     expect(unmatched).toHaveLength(2);
   });
 
-  it('still accepts the flatter shapes as a fallback', () => {
-    const { counties } = buildCountyIndex([{ slug: 'king-county-wa' }], census);
+  it('still accepts a flat slug as a fallback', () => {
+    const { counties } = buildCountyIndex([{ slug: 'king-county-wa' }], census, null);
     expect(counties['53033']).toMatchObject({ slug: 'king-county-wa' });
   });
 
-  it('reports the entry’s keys when it cannot find a slug at all', () => {
+  it('reports the jurisdictionId and keys when nothing resolves', () => {
     // So one failed run is enough to locate a field that moved again.
-    const { unmatched } = buildCountyIndex([{ id: 'x', totalVoters: 5 }], census);
-    expect(unmatched[0]).toContain('keys: id,totalVoters');
+    const { unmatched } = buildCountyIndex([{ id: 'x', jurisdictionId: 'ghost' }], census, null);
+    expect(unmatched[0]).toContain('jurisdictionId=ghost');
+    expect(unmatched[0]).toContain('keys: id,jurisdictionId');
   });
 
   it('reports localities it cannot match rather than dropping them silently', () => {
     const { counties, unmatched } = buildCountyIndex(
-      [locality('atlantis-county-wa', 'Atlantis County')],
+      [locality('atlantis-county-wa')],
       census,
+      jurisdiction('atlantis-county-wa'),
     );
     expect(counties).toEqual({});
     expect(unmatched).toEqual(['atlantis-county-wa']);

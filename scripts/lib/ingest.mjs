@@ -102,11 +102,24 @@ export async function buildSnapshot({
   const stateData = await get(dataUrl);
   if (!stateData) throw new Error(`No results payload at ${dataUrl}`);
 
-  const { counties, unmatched } = buildCountyIndex(stateData.localityElections, censusCounties);
+  const { counties, unmatched } = buildCountyIndex(
+    stateData.localityElections,
+    censusCounties,
+    stateData.jurisdiction,
+  );
   if (unmatched.length) {
-    log(`warning: ${unmatched.length} localities did not match a county: ${unmatched.join(', ')}`);
+    // Cap it: 39 unresolved localities each dumping their key list buries the
+    // rest of the log, and the first few say the same thing as all of them.
+    const shown = unmatched.slice(0, 3).join(' | ');
+    const rest = unmatched.length > 3 ? ` (+${unmatched.length - 3} more)` : '';
+    log(`warning: ${unmatched.length} localities did not match a county: ${shown}${rest}`);
   }
-  log(`${Object.keys(counties).length} participating counties`);
+  const countySlugs = Object.values(counties).map((c) => c.slug);
+  log(`${countySlugs.length} participating counties`);
+  if (countySlugs.length > 0) {
+    // Confirms the slug form actually used for the county fetches below.
+    log(`county slugs e.g. ${countySlugs.slice(0, 3).join(', ')}`);
+  }
 
   const statewideRaces = normalizeBallotItems(stateData.ballotItems);
   log(`${statewideRaces.length} statewide ballot items`);

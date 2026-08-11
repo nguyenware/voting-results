@@ -279,7 +279,20 @@ const META = {
 
 function stateDataPayload() {
   return {
-    jurisdiction: { id: 'juris-wa', shortName: 'WA', name: en('Washington'), childLocalities: [] },
+    // The county directory lives here, NOT on the localityElections entries.
+    // Note the deliberately UPPERCASE ids: upstream returns these GUIDs in a
+    // different case than localityElections[].jurisdictionId does, so a
+    // case-sensitive join silently finds zero counties.
+    jurisdiction: {
+      id: 'juris-wa',
+      shortName: 'washington',
+      name: en('Washington'),
+      childLocalities: COUNTIES.map((c) => ({
+        id: `JURIS-${c.slug.toUpperCase()}`,
+        shortName: c.slug,
+        name: en(c.name),
+      })),
+    },
     election: {
       id: 'election-wa-20260804',
       name: en('2026 Primary (SAMPLE DATA — NOT REAL RESULTS)'),
@@ -288,19 +301,21 @@ function stateDataPayload() {
       ballotItemCount: 1,
       ballotsCast: 0,
     },
-    // Mirrors the real payload's shape exactly, which matters more than it
-    // looks: an earlier version of this mock put `slug` at the top level, so
-    // the tests passed while production failed to match a single county. The
-    // entry's own `name` is the ELECTION name, identical for every county, and
-    // the county slug hides at jurisdiction.shortName.
+    // Mirrors the real payload exactly, which matters more than it looks: two
+    // earlier versions of this mock invented a county name or slug on these
+    // entries, so the tests passed while production matched zero counties.
+    //
+    // A real entry names its ELECTION, never its county — `name` is
+    // "2026 Primary" for all 39 — and points at the county only by GUID.
+    // Resolving that GUID against jurisdiction.childLocalities[] is the only
+    // way to learn which county this is.
     localityElections: COUNTIES.map((c) => ({
       id: `le-${c.slug}`,
+      jurisdictionId: `juris-${c.slug}`, // lowercase here, UPPERCASE above
       name: en('2026 Primary'),
-      jurisdiction: {
-        id: `juris-${c.slug}`,
-        shortName: c.slug,
-        name: en(c.name),
-      },
+      isPrimary: true,
+      ballotItemCount: 1,
+      totalVoters: 0,
     })),
     ballotItems: statewideBallotItems(),
     precincts: [],
