@@ -18,7 +18,7 @@
       "binding": "RESULTS",
       // Replace with the id printed by:
       //   npx wrangler kv namespace create RESULTS
-      "id": "REPLACE_WITH_YOUR_KV_NAMESPACE_ID"
+      "id": "ef1be3b3b54546b49dcf7ec25ce0e0be"
     }
   ],
 
