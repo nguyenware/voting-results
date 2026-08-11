@@ -168,6 +168,36 @@ reports is the thing to avoid. The Cloudflare setup below serves the shell as
 static assets and the results from KV, refreshed by a cron trigger — so new
 numbers appear with no rebuild and no redeploy.
 
+### Rehearse it locally first
+
+`wrangler dev` runs the Worker, a local KV, and the cron trigger on your
+machine, so you can exercise the entire deploy before it touches a real
+account or the live Secretary of State service:
+
+```bash
+cp .dev.vars.example .dev.vars        # points the ingest at the local mock
+node scripts/mock-api.mjs --port 8791 &
+npm run build
+npx wrangler dev --port 8790 --test-scheduled
+```
+
+Then, in another shell:
+
+```bash
+curl localhost:8790/data/results/index.json          # sample, from dist/ — KV is empty
+curl localhost:8790/cdn-cgi/handler/scheduled        # fire the cron
+curl localhost:8790/data/results/index.json          # now from KV, isSample:false
+
+curl -X POST localhost:8790/__refresh \
+  -H "Authorization: Bearer local-dev-token"         # {"skipped":true,"reason":"unchanged"}
+curl -X POST "localhost:8790/__refresh?force=1" \
+  -H "Authorization: Bearer local-dev-token"         # re-ingests
+```
+
+That sequence checks the four things most likely to be wrong in a real
+deploy: assets serve, the Worker intercepts `/data/results/*`, the cron
+writes KV, and the skip-when-unchanged path works.
+
 ### Cloudflare (recommended)
 
 One Worker serves the static assets, answers `/data/results/*` from KV, and

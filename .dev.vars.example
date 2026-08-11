@@ -1,0 +1,13 @@
+# Local-only overrides for `wrangler dev`. Copy to .dev.vars (gitignored).
+#
+# Point the ingest at the local mock API so you can rehearse the whole
+# deploy — cron, KV, refresh endpoint — without touching the live
+# Secretary of State service:
+#
+#   node scripts/mock-api.mjs --port 8791 &
+#
+VOTEWA_API_BASE = "http://127.0.0.1:8791/results/public/api"
+
+# Enables POST /__refresh locally. In production set it as a secret instead:
+#   npx wrangler secret put REFRESH_TOKEN
+REFRESH_TOKEN = "local-dev-token"
