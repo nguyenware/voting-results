@@ -22,10 +22,19 @@
     }
   ],
 
+  // In-Worker ingest. Requires the Workers PAID plan: the free plan allows
+  // 10 ms of CPU per invocation and normalizing ~40 county payloads costs well
+  // over 100 ms, so on free these ticks fail with a CPU-limit error.
+  //
+  // ON THE FREE PLAN: delete this "triggers" block and let
+  // .github/workflows/refresh-results.yml do the ingest instead. It runs the
+  // same code and writes the same KV keys; the Worker is then only reading
+  // from KV, which is far below the free CPU ceiling.
+  //
+  // Most ticks cost a single upstream request either way, because the job
+  // skips the county fan-out when `asOf` has not moved. Drop to "*/2 * * * *"
+  // on election night, or up to hourly once results certify.
   "triggers": {
-    // Every 5 minutes. Most ticks cost a single upstream request because the
-    // job skips the county fan-out when `asOf` has not moved. Drop to
-    // "*/2 * * * *" on election night, or up to hourly once results certify.
     "crons": ["*/5 * * * *"]
   },
 

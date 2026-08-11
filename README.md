@@ -254,6 +254,47 @@ curl -X POST https://<your-host>/__refresh -H "Authorization: Bearer <token>"
 
 `npm run cf:tail` streams logs, including each cron run's outcome.
 
+### Staying on the free tier
+
+The in-Worker cron above needs the **Workers Paid** plan. Workers' free plan
+allows 10 ms of CPU per invocation, and parsing ~40 county payloads costs well
+over 100 ms — measured at 34 ms for a 14-county fixture — so the scheduled
+ingest fails on free with a CPU-limit error. Free also caps subrequests at 50
+and this ingest makes 41 before retries.
+
+The fix is to move only the expensive part off Workers. `scripts/push-to-kv.mjs`
+runs the ingest wherever there is no CPU ceiling and writes the same KV keys
+over Cloudflare's REST API; the Worker is then only *reading* from KV, which
+sits far below the free limit. It is the same `lib/ingest.mjs` either way, so
+the two modes cannot produce different results.
+
+To switch:
+
+1. Delete the `"triggers"` block from `wrangler.jsonc` so the Worker stops
+   trying (and stops logging CPU errors).
+2. Make sure `CLOUDFLARE_ACCOUNT_ID` and `CLOUDFLARE_API_TOKEN` are repository
+   secrets, and that the token has **Workers KV Storage: Edit**.
+3. `.github/workflows/refresh-results.yml` does the rest.
+
+That workflow needs no `npm ci` — the ingest imports only Node built-ins and
+the committed county index — so each billed run is short.
+
+**Mind the Actions budget on a private repo.** Private repos get 2,000 Actions
+minutes/month and every run bills at least a minute:
+
+| Cadence | Minutes/month | Fits free? |
+|---|---|---|
+| `*/30` (default) | ~1,440 | yes, with room for the deploy workflow |
+| `*/15` | ~2,880 | no |
+| `*/5` | ~8,640 | no |
+
+For election night, either make the repo public — Actions minutes are then
+unlimited and `*/5` is fine — or trigger the workflow by hand from the Actions
+tab, which is not rate limited. Public repos have no such constraint.
+
+Either way KV writes stay well inside the free 1,000/day allowance, because an
+unchanged `asOf` skips writing entirely.
+
 **Cron cost is low by design.** The job checks the metadata endpoint first —
 it carries `asOf`, so when nothing upstream has moved the per-county fan-out is
 skipped entirely and the tick costs one request instead of sixteen. The
