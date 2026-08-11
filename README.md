@@ -268,32 +268,31 @@ over Cloudflare's REST API; the Worker is then only *reading* from KV, which
 sits far below the free limit. It is the same `lib/ingest.mjs` either way, so
 the two modes cannot produce different results.
 
-To switch:
+This is how the repo ships. `wrangler.jsonc` has no `"triggers"` block, and
+`.github/workflows/refresh-results.yml` runs the ingest every 5 minutes. The
+only setup is two repository secrets — `CLOUDFLARE_ACCOUNT_ID` and
+`CLOUDFLARE_API_TOKEN`, with the token carrying **Workers KV Storage: Edit**.
 
-1. Delete the `"triggers"` block from `wrangler.jsonc` so the Worker stops
-   trying (and stops logging CPU errors).
-2. Make sure `CLOUDFLARE_ACCOUNT_ID` and `CLOUDFLARE_API_TOKEN` are repository
-   secrets, and that the token has **Workers KV Storage: Edit**.
-3. `.github/workflows/refresh-results.yml` does the rest.
+The workflow needs no `npm ci`: the ingest imports only Node built-ins and the
+committed county index, so each run is short.
 
-That workflow needs no `npm ci` — the ingest imports only Node built-ins and
-the committed county index — so each billed run is short.
+KV writes stay well inside the free 1,000/day allowance because an unchanged
+`asOf` skips writing entirely — most runs cost one upstream request and no
+write at all.
 
-**Mind the Actions budget on a private repo.** Private repos get 2,000 Actions
-minutes/month and every run bills at least a minute:
+**On Actions minutes:** public repos get unlimited minutes, so the 5-minute
+cadence is free. On a *private* repo the 2,000 min/month budget binds instead —
+every run bills at least a minute, so `*/5` would cost ~8,640 min/month.
+Private repos should use `*/30` (~1,440) and trigger manually from the Actions
+tab when results are actually moving.
 
-| Cadence | Minutes/month | Fits free? |
-|---|---|---|
-| `*/30` (default) | ~1,440 | yes, with room for the deploy workflow |
-| `*/15` | ~2,880 | no |
-| `*/5` | ~8,640 | no |
+Two GitHub behaviours to know: scheduled runs are best-effort and get delayed
+under load, and GitHub disables schedules after 60 days without repo activity.
 
-For election night, either make the repo public — Actions minutes are then
-unlimited and `*/5` is fine — or trigger the workflow by hand from the Actions
-tab, which is not rate limited. Public repos have no such constraint.
-
-Either way KV writes stay well inside the free 1,000/day allowance, because an
-unchanged `asOf` skips writing entirely.
+**On a paid Workers plan** you can move the ingest back in-process instead:
+restore `"triggers": { "crons": ["*/5 * * * *"] }` to `wrangler.jsonc` and
+disable this workflow. The `scheduled` handler in `worker/index.js` is still
+wired up for it.
 
 **Cron cost is low by design.** The job checks the metadata endpoint first —
 it carries `asOf`, so when nothing upstream has moved the per-county fan-out is

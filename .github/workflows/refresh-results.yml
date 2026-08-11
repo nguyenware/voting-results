@@ -6,23 +6,23 @@ name: Refresh results
 # well over 100 ms, but reading a value out of KV — all the Worker does in this
 # mode — is far below the ceiling.
 #
-# Cadence is sized for a PRIVATE repo, which gets 2,000 Actions minutes/month.
-# Each run bills at least a minute, so:
+# This repo is public, so Actions minutes are unlimited and the cadence is set
+# by what the data actually does rather than by budget. Five minutes is the
+# shortest GitHub allows and matches how fast counties report on election
+# night; dial it back to hourly ('0 * * * *') once results certify, since a run
+# that finds nothing changed still costs an upstream request.
 #
-#   */30  ->  ~1,440 min/month   fits, with room for the deploy workflow
-#   */15  ->  ~2,880 min/month   over budget
-#   */5   ->  ~8,640 min/month   far over budget
-#
-# For election night either make the repo public (Actions minutes are then
-# unlimited, so */5 is fine) or run this manually from the Actions tab, which
-# is not rate limited.
+# Two GitHub behaviours worth knowing: scheduled runs are best-effort and get
+# delayed under load, and GitHub disables schedules after 60 days without repo
+# activity. Neither matters for a run-up to an election; both matter if this
+# sits idle for months.
 #
 # Required secrets: CLOUDFLARE_ACCOUNT_ID, CLOUDFLARE_API_TOKEN
 # The token needs Workers KV Storage: Edit.
 
 on:
   schedule:
-    - cron: '*/30 * * * *'
+    - cron: '*/5 * * * *'
   workflow_dispatch:
     inputs:
       force:

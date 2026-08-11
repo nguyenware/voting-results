@@ -22,21 +22,16 @@
     }
   ],
 
-  // In-Worker ingest. Requires the Workers PAID plan: the free plan allows
-  // 10 ms of CPU per invocation and normalizing ~40 county payloads costs well
-  // over 100 ms, so on free these ticks fail with a CPU-limit error.
+  // No "triggers" block on purpose. The in-Worker cron needs the Workers PAID
+  // plan: free allows 10 ms of CPU per invocation and normalizing ~40 county
+  // payloads costs well over 100 ms, so those ticks would fail with a
+  // CPU-limit error. .github/workflows/refresh-results.yml runs the same
+  // ingest instead and writes the same KV keys, leaving this Worker only
+  // reading from KV — far below the free ceiling.
   //
-  // ON THE FREE PLAN: delete this "triggers" block and let
-  // .github/workflows/refresh-results.yml do the ingest instead. It runs the
-  // same code and writes the same KV keys; the Worker is then only reading
-  // from KV, which is far below the free CPU ceiling.
-  //
-  // Most ticks cost a single upstream request either way, because the job
-  // skips the county fan-out when `asOf` has not moved. Drop to "*/2 * * * *"
-  // on election night, or up to hourly once results certify.
-  "triggers": {
-    "crons": ["*/5 * * * *"]
-  },
+  // On a paid plan you can move the ingest back in-process by restoring:
+  //   "triggers": { "crons": ["*/5 * * * *"] }
+  // The scheduled handler in worker/index.js is still wired up for that.
 
   "vars": {
     "ELECTION_ID": "20260804"
