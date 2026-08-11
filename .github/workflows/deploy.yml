@@ -1,0 +1,57 @@
+name: Deploy to Cloudflare
+
+# Deploys the Worker (app shell + KV-backed results + cron ingest) on every
+# push, so the repo never has to be cloned to ship a change.
+#
+# The build is just install + build: the boundary files and ZIP crosswalk are
+# committed, so the heavy `npm run data:geo` pipeline — a ~30 MB download and a
+# few minutes of polygon intersection — does not run here. Re-run that locally
+# only when the underlying Census boundaries change.
+#
+# Required repository secrets (Settings → Secrets and variables → Actions):
+#   CLOUDFLARE_API_TOKEN   token with the "Edit Cloudflare Workers" template
+#   CLOUDFLARE_ACCOUNT_ID  from the Cloudflare dashboard sidebar
+
+on:
+  push:
+    branches:
+      - main
+      - claude/wa-voting-results-zipcode-24725r
+  workflow_dispatch:
+
+# Never let two deploys race; a later push supersedes an in-flight one.
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      # Gate the deploy on the suite: normalizer, ZIP lookup rules, colour
+      # scales, and the Worker's KV refresh logic.
+      - name: Run tests
+        run: npm test
+
+      - name: Build
+        run: npm run build
+
+      - name: Deploy Worker
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}

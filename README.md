@@ -168,6 +168,37 @@ reports is the thing to avoid. The Cloudflare setup below serves the shell as
 static assets and the results from KV, refreshed by a cron trigger — so new
 numbers appear with no rebuild and no redeploy.
 
+### Deploying without cloning
+
+You do not need a local checkout. The boundary files and ZIP crosswalk are
+committed, so a build is only `npm ci && npm run build` — the heavy
+`npm run data:geo` pipeline has already run and its output is in the repo.
+`.github/workflows/deploy.yml` runs the tests and deploys on every push.
+
+Entirely from the browser:
+
+1. **Cloudflare dashboard** → Storage & Databases → KV → **Create namespace**,
+   name it `RESULTS`, copy the id.
+2. **GitHub web editor** → open `wrangler.jsonc`, replace
+   `REPLACE_WITH_YOUR_KV_NAMESPACE_ID` with that id, commit.
+3. **Cloudflare** → My Profile → API Tokens → **Create Token** → use the
+   *Edit Cloudflare Workers* template. Copy the token. Your account id is in
+   the dashboard sidebar.
+4. **GitHub** → Settings → Secrets and variables → Actions → add
+   `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID`.
+5. Push anything, or run the workflow manually from the **Actions** tab.
+
+Step 2's commit will itself trigger the deploy once the secrets from step 4
+exist, so ordering matters only in that the secrets must land before the run
+you expect to succeed.
+
+Cloudflare's own *Workers Builds* (connect the GitHub repo from the Cloudflare
+dashboard) is an alternative that skips the Actions workflow entirely; it still
+needs steps 1 and 2.
+
+Clone locally only when you want to change the app, or to re-run `data:geo`
+because the Census boundaries changed.
+
 ### Rehearse it locally first
 
 `wrangler dev` runs the Worker, a local KV, and the cron trigger on your
