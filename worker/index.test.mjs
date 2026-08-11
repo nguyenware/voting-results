@@ -94,3 +94,28 @@ describe('refresh', () => {
     expect(snapshot.isSample).toBe(false);
   });
 });
+
+describe('guard rails', () => {
+  it('refuses to overwrite good results with an empty snapshot', async () => {
+    const kv = fakeKv();
+    await refresh(env(kv));
+    const good = kv.store.get('results:snapshot:20260804');
+
+    // Upstream that answers but matches no counties — a renamed slug field,
+    // say. Overwriting with this would blank a working site.
+    const emptyApi = {
+      RESULTS: kv,
+      ELECTION_ID: '20260804',
+      VOTEWA_API_BASE: apiBase,
+      VOTEWA_STATE_SLUG: 'nowhere',
+    };
+    await expect(refresh(emptyApi, { force: true })).rejects.toThrow();
+    expect(kv.store.get('results:snapshot:20260804')).toBe(good);
+  });
+
+  it('reports ingest progress notes for diagnosis', async () => {
+    const outcome = await refresh(env());
+    expect(outcome.notes.some((n) => n.includes('participating counties'))).toBe(true);
+    expect(outcome.electionName).toBeTruthy();
+  });
+});

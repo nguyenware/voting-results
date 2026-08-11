@@ -119,8 +119,29 @@ export async function refresh(env, { force = false } = {}) {
     return { ok: true, skipped: true, reason: 'unchanged', asOf: meta.asOf };
   }
 
-  const snapshot = await buildSnapshot({ ...config, meta, censusCounties });
+  // Surface the ingest's own progress in `wrangler tail` and the dashboard
+  // logs. The county-matching lines are the ones that matter when diagnosing a
+  // deploy: if VoteWA ever renames its locality slug field, this is where it
+  // shows up as "0 participating counties" rather than as silently empty
+  // results.
+  const notes = [];
+  const snapshot = await buildSnapshot({
+    ...config,
+    meta,
+    censusCounties,
+    log: (message) => {
+      notes.push(message);
+      console.log(`ingest: ${message}`);
+    },
+  });
   const index = buildIndex(snapshot);
+
+  const countyCount = Object.keys(snapshot.counties).length;
+  if (countyCount === 0) {
+    throw new Error(
+      'Upstream returned no matchable counties — refusing to overwrite good results with an empty snapshot',
+    );
+  }
 
   // Snapshot first, then the index that points at it: if the second write
   // fails, readers keep the older but internally consistent pair.
@@ -132,9 +153,11 @@ export async function refresh(env, { force = false } = {}) {
     ok: true,
     skipped: false,
     electionId,
+    electionName: snapshot.electionName,
     asOf: snapshot.asOf,
     isOfficial: snapshot.isOfficial,
     races: snapshot.races.length,
-    counties: Object.keys(snapshot.counties).length,
+    counties: countyCount,
+    notes,
   };
 }
