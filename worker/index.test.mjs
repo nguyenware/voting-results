@@ -35,11 +35,11 @@ describe('refresh', () => {
     const outcome = await refresh(env(kv));
 
     expect(outcome).toMatchObject({ ok: true, skipped: false, electionId: '20260804' });
-    expect(outcome.races).toBe(6);
+    expect(outcome.races).toBe(8);
     expect(outcome.counties).toBe(14);
 
     const snapshot = JSON.parse(kv.store.get('results:snapshot:20260804'));
-    expect(snapshot.races).toHaveLength(6);
+    expect(snapshot.races).toHaveLength(8);
     expect(Object.keys(snapshot.counties)).toContain('53033');
 
     const index = JSON.parse(kv.store.get('results:index'));

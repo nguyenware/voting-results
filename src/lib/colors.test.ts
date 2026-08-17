@@ -1,5 +1,11 @@
 import { describe, it, expect } from 'vitest';
-import { optionColor, divergingFill, divergingScale, MARGIN_BUCKET_LABELS } from './colors';
+import {
+  optionColor,
+  raceOptionColors,
+  divergingFill,
+  divergingScale,
+  MARGIN_BUCKET_LABELS,
+} from './colors';
 
 /** Relative luminance, for asserting a ramp gets monotonically darker. */
 function luminance(hex: string): number {
@@ -87,5 +93,47 @@ describe('divergingScale', () => {
     const scale = divergingScale('light', 'b');
     expect(scale[0]).toBe(divergingFill('light', 'b', 2));
     expect(scale[3]).toBe(divergingFill('light', 'b', 40));
+  });
+});
+
+describe('raceOptionColors', () => {
+  const mixed = [{ party: 'D' }, { party: 'R' }, { party: 'I' }];
+
+  it('keeps party convention when each party appears once', () => {
+    const [d, r] = raceOptionColors('light', mixed);
+    expect(d).toBe('#2a78d6');
+    expect(r).toBe('#e34948');
+  });
+
+  it('gives two same-party candidates distinct colours', () => {
+    // Washington's top-two primary makes this routine, not an edge case.
+    const colors = raceOptionColors('light', [{ party: 'D' }, { party: 'D' }, { party: 'R' }]);
+    expect(new Set(colors).size).toBe(3);
+  });
+
+  it('does so in dark mode too', () => {
+    const colors = raceOptionColors('dark', [{ party: 'R' }, { party: 'R' }]);
+    expect(new Set(colors).size).toBe(2);
+  });
+
+  it('gives every option a distinct colour in a crowded same-party race', () => {
+    const options = Array.from({ length: 6 }, () => ({ party: 'D' }));
+    expect(new Set(raceOptionColors('light', options)).size).toBe(6);
+  });
+
+  it('keeps nonpartisan options distinct from each other', () => {
+    const colors = raceOptionColors('light', [{ party: null }, { party: null }, { party: null }]);
+    expect(new Set(colors).size).toBe(3);
+  });
+
+  it('does not paint a nonpartisan option in a reserved party colour', () => {
+    const reserved = ['#2a78d6', '#e34948'];
+    for (const c of raceOptionColors('light', [{ party: null }, { party: null }])) {
+      expect(reserved).not.toContain(c);
+    }
+  });
+
+  it('returns one colour per option', () => {
+    expect(raceOptionColors('light', mixed)).toHaveLength(3);
   });
 });

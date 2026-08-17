@@ -562,6 +562,48 @@ body {
   font-variant-numeric: tabular-nums;
 }
 
+/* --- partial (sub-county) races ----------------------------------------- */
+
+.partial-races {
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.1rem;
+  margin-bottom: var(--gap);
+}
+
+.partial-races__summary {
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.partial-races[open] .partial-races__summary {
+  margin-bottom: 0.5rem;
+}
+
+.partial-races__item {
+  position: relative;
+  margin-top: 0.9rem;
+}
+
+/* The card already carries its own surface; the tag rides above it. */
+.partial-races__item .panel {
+  margin-bottom: 0;
+}
+
+.coverage-tag {
+  display: inline-block;
+  margin-bottom: 0.35rem;
+  padding: 0.1rem 0.5rem;
+  border-radius: 999px;
+  background: var(--track);
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+}
+
 /* --- map ---------------------------------------------------------------- */
 
 .map-panel__header {

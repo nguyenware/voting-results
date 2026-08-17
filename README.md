@@ -37,6 +37,29 @@ it rather than papering over it:
 For a split ZIP the UI names the most likely county and lets you expand each
 race to see the counties separately.
 
+### Not every county race was on your ballot
+
+A county runs far more contests than any one voter sees. King County alone
+covers ~15 legislative districts plus dozens of city, school, fire, and water
+district races, so listing every King County contest under a Seattle ZIP is
+accurate and useless — that voter saw maybe 8 to 15 of them.
+
+The data can mostly sort this out on its own. How many of a county's ballots
+recorded a vote in a contest tells you its reach: a countywide race pulls most
+of them, a single legislative district pulls a small slice. So races are split
+into **on this ZIP's ballots** (statewide plus countywide) and a collapsed
+**held in your county, only some of which reached this ZIP**, each labelled
+with the share of county voters who took part.
+
+The measure is deliberately county-relative, and that is correct: Legislative
+District 24 covers essentially all of Clallam County, so for a Clallam ZIP it
+reads as on-ballot, while a district inside King County reads as partial.
+
+What this still cannot do is tell you *which* legislative district is yours.
+That needs district boundaries, not results data. Precinct-level results exist
+upstream but the API publishes no precinct geometry, so a truly exact ballot
+would need a separate boundary source.
+
 ### Why "most likely county" is not just the biggest one
 
 The primary county comes from the USPS/Census reference table, which reflects

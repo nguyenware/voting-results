@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import type { Race } from '../lib/types';
-import { optionColor, type Mode } from '../lib/colors';
+import { raceOptionColors, type Mode } from '../lib/colors';
 import { formatPct, formatVotes, joinNames } from '../lib/format';
 
 interface Props {
@@ -23,6 +23,9 @@ export function RaceCard({ race, mode, zipCounties, selected, onSelect }: Props)
   const [showCounties, setShowCounties] = useState(false);
 
   const options = [...race.options].sort((a, b) => b.votes - a.votes);
+  // Resolved for the race as a whole: a contest with two same-party candidates
+  // cannot use the party hues without them colliding.
+  const colors = raceOptionColors(mode, options);
   const countiesWithData = zipCounties.filter((c) => race.byCounty[c.fips]);
   const isLocal = race.countyFips.length < 3;
 
@@ -51,7 +54,7 @@ export function RaceCard({ race, mode, zipCounties, selected, onSelect }: Props)
 
       <ul className="bars">
         {options.map((option, index) => {
-          const color = optionColor(mode, index, option.party);
+          const color = colors[index] as string;
           return (
             <li key={`${option.id}-${option.name}`} className="bars__row">
               <div className="bars__label">
@@ -92,6 +95,7 @@ export function RaceCard({ race, mode, zipCounties, selected, onSelect }: Props)
                 const breakdown = race.byCounty[county.fips];
                 if (!breakdown) return null;
                 const sorted = [...breakdown.options].sort((a, b) => b.votes - a.votes);
+                const countyColors = raceOptionColors(mode, sorted);
                 return (
                   <div key={county.fips} className="county-breakdown__block">
                     <h4 className="county-breakdown__title">
@@ -106,7 +110,7 @@ export function RaceCard({ race, mode, zipCounties, selected, onSelect }: Props)
                           <div className="bars__label">
                             <span
                               className="bars__swatch"
-                              style={{ background: optionColor(mode, index, option.party) }}
+                              style={{ background: countyColors[index] as string }}
                               aria-hidden="true"
                             />
                             <span className="bars__name">{option.name}</span>
@@ -116,7 +120,7 @@ export function RaceCard({ race, mode, zipCounties, selected, onSelect }: Props)
                               className="bars__fill"
                               style={{
                                 width: `${Math.max(option.pct, 0.4)}%`,
-                                background: optionColor(mode, index, option.party),
+                                background: countyColors[index] as string,
                               }}
                             />
                           </div>

@@ -104,13 +104,45 @@ const STATEWIDE = [
   },
 ];
 
-/** Contests that appear on only some counties' ballots (no statewide row). */
+/**
+ * Contests that appear on only some counties' ballots (no statewide row).
+ *
+ * `coverage` is the share of a county's ballots that include the contest, and
+ * it is what the app uses to tell "everyone in your county voted on this" from
+ * "a slice of your county did". A legislative district inside King County sits
+ * near 0.08; a countywide office sits near 0.9. Keeping realistic values here
+ * is what makes the sample exercise that split at all.
+ */
 const LOCAL = [
+  {
+    id: 'local-ld43',
+    contestType: 'Candidate',
+    name: 'Legislative District 43 — State Representative Pos. 1',
+    counties: ['king-county-wa'],
+    coverage: 0.08,
+    options: [
+      { id: 'l1', name: 'Imani Okonkwo', party: 'D', base: 0.58 },
+      { id: 'l2', name: 'Nils Bergstrom', party: 'D', base: 0.31 },
+      { id: 'l3', name: 'Cora Vance', party: 'R', base: 0.11 },
+    ],
+  },
+  {
+    id: 'local-seattle-prop1',
+    contestType: 'BallotMeasure',
+    name: 'City of Seattle Proposition No. 1 — Transit Levy',
+    counties: ['king-county-wa'],
+    coverage: 0.34,
+    options: [
+      { id: 's1', name: 'Yes', party: null, base: 0.57 },
+      { id: 's2', name: 'No', party: null, base: 0.43 },
+    ],
+  },
   {
     id: 'local-nm-levy',
     contestType: 'BallotMeasure',
     name: 'North Mason School District No. 403 — Capital Levy',
     counties: ['mason-county-wa', 'kitsap-county-wa'],
+    coverage: 0.22,
     options: [
       { id: 'ly', name: 'Yes', party: null, base: 0.51 },
       { id: 'ln', name: 'No', party: null, base: 0.49 },
@@ -121,6 +153,7 @@ const LOCAL = [
     contestType: 'BallotMeasure',
     name: 'San Juan County Public Hospital District No. 1 — Operations Levy',
     counties: ['san-juan-county-wa'],
+    coverage: 0.88, // a hospital district covering essentially the whole county
     options: [
       { id: 'hy', name: 'Yes', party: null, base: 0.62 },
       { id: 'hn', name: 'No', party: null, base: 0.38 },
@@ -131,6 +164,7 @@ const LOCAL = [
     contestType: 'Candidate',
     name: 'King County Council District 4',
     counties: ['king-county-wa'],
+    coverage: 0.12,
     options: [
       { id: 'k1', name: 'Theo Nakamura', party: null, base: 0.44 },
       { id: 'k2', name: 'Priya Raghunathan', party: null, base: 0.39 },
@@ -207,7 +241,7 @@ function ballotItemsFor(slug) {
 
   for (const contest of LOCAL) {
     if (!contest.counties.includes(slug)) continue;
-    const cast = Math.round(totalBallots * 0.6);
+    const cast = Math.round(totalBallots * (contest.coverage ?? 0.6));
     items.push({
       id: `${contest.id}-${slug}`,
       parentId: contest.id,

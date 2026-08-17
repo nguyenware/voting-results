@@ -7,7 +7,8 @@ import { ResultsTable } from './components/ResultsTable';
 import { useColorMode } from './hooks/useColorMode';
 import { loadCrosswalk, loadElectionIndex, loadSnapshot } from './lib/data';
 import { lookupZip, type ZipLookupResult } from './lib/lookup';
-import { formatDate, formatTimestamp } from './lib/format';
+import { scopeRaces } from './lib/scope';
+import { formatDate, formatTimestamp, joinNames } from './lib/format';
 import type { ElectionSnapshot, ZipCrosswalk } from './lib/types';
 
 type LoadState =
@@ -75,13 +76,24 @@ export function App() {
     return lookupZip(query, state.crosswalk, state.snapshot);
   }, [state, query]);
 
-  // Default the map to the biggest race the ZIP votes on.
+  const scoped = useMemo(() => {
+    if (state.status !== 'ready' || !result?.ok) return { onBallot: [], partial: [] };
+    return scopeRaces(
+      result.races,
+      state.snapshot,
+      result.reportingCounties.map((c) => c.fips),
+    );
+  }, [state, result]);
+
+  // Default the map to the most prominent race actually on this ZIP's ballot.
   useEffect(() => {
-    if (result?.ok && result.races.length > 0) {
-      const stillValid = result.races.some((r) => r.id === selectedRaceId);
-      if (!stillValid) setSelectedRaceId(result.races[0]?.id ?? null);
-    }
-  }, [result, selectedRaceId]);
+    const preferred = scoped.onBallot[0]?.race.id ?? scoped.partial[0]?.race.id ?? null;
+    if (!preferred) return;
+    const stillValid = [...scoped.onBallot, ...scoped.partial].some(
+      (s) => s.race.id === selectedRaceId,
+    );
+    if (!stillValid) setSelectedRaceId(preferred);
+  }, [scoped, selectedRaceId]);
 
   function search(value: string) {
     setQuery(value);
@@ -153,10 +165,10 @@ export function App() {
             <div className="layout">
               <div className="layout__main">
                 <h2 className="section-heading">
-                  {result.races.length} contest{result.races.length === 1 ? '' : 's'} on this
+                  {scoped.onBallot.length} contest{scoped.onBallot.length === 1 ? '' : 's'} on this
                   ZIP&rsquo;s ballots
                 </h2>
-                {result.races.map((race) => (
+                {scoped.onBallot.map(({ race }) => (
                   <RaceCard
                     key={race.id}
                     race={race}
@@ -166,6 +178,39 @@ export function App() {
                     onSelect={() => setSelectedRaceId(race.id)}
                   />
                 ))}
+
+                {scoped.partial.length > 0 && (
+                  <details className="partial-races">
+                    <summary className="partial-races__summary">
+                      {scoped.partial.length} more contest
+                      {scoped.partial.length === 1 ? '' : 's'} held in{' '}
+                      {joinNames(result.reportingCounties.map((c) => `${c.name} County`))}, only
+                      some of which reached this ZIP
+                    </summary>
+                    <p className="note">
+                      These ran in part of the county — a single legislative district, city, or
+                      school district. Results are only published per county, so we cannot tell
+                      which of them were on your specific ballot. The share shows how much of the
+                      county voted in each.
+                    </p>
+                    {scoped.partial.map(({ race, coverage }) => (
+                      <div key={race.id} className="partial-races__item">
+                        {coverage !== null && (
+                          <span className="coverage-tag">
+                            {coverage < 0.01 ? '<1' : Math.round(coverage * 100)}% of county voters
+                          </span>
+                        )}
+                        <RaceCard
+                          race={race}
+                          mode={mode}
+                          zipCounties={result.reportingCounties}
+                          selected={race.id === selectedRaceId}
+                          onSelect={() => setSelectedRaceId(race.id)}
+                        />
+                      </div>
+                    ))}
+                  </details>
+                )}
               </div>
 
               <aside className="layout__side">

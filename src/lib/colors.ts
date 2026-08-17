@@ -129,6 +129,50 @@ export function optionColor(mode: Mode, index: number, party: string | null): st
 }
 
 /**
+ * Colours for every option in one race, resolved together.
+ *
+ * Pinning parties to fixed hues breaks down in Washington, whose top-two
+ * primary routinely puts two candidates of the same party in one contest — two
+ * Democrats would both come out blue and become indistinguishable.
+ *
+ * Lightness variants of the party hue do not rescue it: stepping blue and red
+ * toward the neutral to separate same-party candidates drives the *cross*-party
+ * pastels together instead, and no step passes the normal-vision floor in both
+ * modes (measured: 13.8-14.4 ΔE dark, against a floor of 15).
+ *
+ * So when a party repeats, that race drops party colouring entirely and takes
+ * the plain categorical order, where every option is a distinct validated hue.
+ * Party identity is not lost — the party letter is rendered as text beside each
+ * name, which is the encoding that has to carry it anyway for a reader who
+ * cannot rely on colour.
+ */
+export function raceOptionColors(
+  mode: Mode,
+  options: Array<{ party: string | null }>,
+): string[] {
+  const counts = new Map<string, number>();
+  for (const option of options) {
+    const key = option.party?.toUpperCase();
+    if (key && PARTY_SLOT[key] !== undefined) {
+      counts.set(key, (counts.get(key) ?? 0) + 1);
+    }
+  }
+  const partyRepeats = [...counts.values()].some((n) => n > 1);
+
+  if (partyRepeats) {
+    const slots = CATEGORICAL[mode];
+    return options.map((_, i) => (slots[i] ?? MUTED) as string);
+  }
+
+  let nonPartisan = 0;
+  return options.map((option) => {
+    const key = option.party?.toUpperCase();
+    if (key && PARTY_SLOT[key] !== undefined) return optionColor(mode, 0, option.party);
+    return optionColor(mode, nonPartisan++, null);
+  });
+}
+
+/**
  * Margin buckets for the choropleth, in percentage points. The first bucket
  * starts well up the ramp so that *any* lead is still visibly signed — a
  * near-tie should read as pale, not as invisible.

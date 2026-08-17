@@ -85,7 +85,7 @@ describe('pushToKv', () => {
     const cf = fakeCloudflare();
     const outcome = await pushToKv(base(cf));
 
-    expect(outcome).toMatchObject({ ok: true, skipped: false, counties: 14, races: 6 });
+    expect(outcome).toMatchObject({ ok: true, skipped: false, counties: 14, races: 8 });
     expect([...cf.store.keys()].sort()).toEqual([
       'results:asof:20260804',
       'results:index',
@@ -94,7 +94,7 @@ describe('pushToKv', () => {
     expect(cf.calls.filter((c) => c.method === 'PUT')).toHaveLength(1);
 
     const snapshot = JSON.parse(cf.store.get('results:snapshot:20260804'));
-    expect(snapshot.races).toHaveLength(6);
+    expect(snapshot.races).toHaveLength(8);
     expect(snapshot.isSample).toBe(false);
   });
 
