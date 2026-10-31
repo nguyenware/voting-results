@@ -5,7 +5,7 @@
  *
  *   node scripts/fetch-results.mjs [yyyymmdd] [--out public/data/results]
  *
- * Defaults to the 2026 primary (20260804). Requires `npm run data:geo` to have
+ * Defaults to the 2026 general election (20261103). Requires `npm run data:geo` to have
  * run first, since county FIPS codes come from the generated county index.
  *
  * This is the Node wrapper: it supplies the county index from disk and writes
@@ -31,7 +31,7 @@ import {
 } from './lib/ingest.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const DEFAULT_ELECTION = '20260804';
+const DEFAULT_ELECTION = '20261103';
 
 const COUNTY_INDEX_PATH = path.join(ROOT, 'public/data/geo/wa-county-index.json');
 
