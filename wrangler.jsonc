@@ -34,7 +34,7 @@
   // The scheduled handler in worker/index.js is still wired up for that.
 
   "vars": {
-    "ELECTION_ID": "20260804"
+    "ELECTION_ID": "20261103"
   },
 
   "observability": {

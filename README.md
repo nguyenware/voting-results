@@ -13,8 +13,8 @@ npm run dev
 To load real results instead of the sample:
 
 ```bash
-npm run data:results            # defaults to the 2026 primary, 20260804
-npm run data:results 20261103   # any election, as yyyymmdd
+npm run data:results            # defaults to the 2026 general, 20261103
+npm run data:results 20260804   # any election, as yyyymmdd
 ```
 
 ## The thing to understand first
